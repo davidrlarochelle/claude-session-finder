@@ -75,6 +75,29 @@ docker compose up
 
 ---
 
+## 🧪 Testing
+
+End-to-end tests run with [Playwright](https://playwright.dev/) against the app in production mode
+(a single Express server serving both the client and the API).
+
+```bash
+npx playwright install chromium   # one-time browser download
+npm run test:e2e                  # run the full suite (headless)
+npm run test:e2e:ui               # interactive UI mode
+npm run test:e2e:report           # open the last HTML report
+```
+
+The suite **never touches your real `~/.claude/projects`**. Before the server boots, a generator
+([`tests/setup/prepare-fixtures.js`](tests/setup/prepare-fixtures.js)) writes a deterministic tree of
+synthetic `.jsonl` sessions that faithfully replicate the on-disk shape of real conversations —
+`ai-title` lines, the full user/assistant envelope, `thinking`/`text`/`tool_use`/`tool_result`
+blocks, observer runs, and even a malformed line — then points the server at it via the
+`CLAUDE_PROJECTS_DIR`, `CACHE_DIR`, and `PORT` env vars. Coverage spans loading, search, sorting, the
+project sidebar, the observer toggle, the detail panel, copy-to-clipboard, theming/design styles, and
+the REST API (including the path-traversal guard).
+
+---
+
 ## 📁 Project structure
 
 ```
@@ -83,12 +106,17 @@ claude-session-finder/
 │   ├── index.js            #   routes + static serving in production
 │   ├── indexer.js          #   stream-parses .jsonl files for metadata
 │   ├── cache.js            #   persists .cache/session-index.json
-│   └── paths.js            #   PROJECTS_DIR, PORT, dir decoding
+│   └── paths.js            #   PROJECTS_DIR, PORT, CACHE_DIR (env-overridable)
 ├── client/                 # React + Vite + Tailwind
 │   └── src/
 │       ├── App.jsx
 │       ├── components/      #   Toolbar, SessionList, SessionRow, DetailPanel, …
 │       └── hooks/           #   useSessions, useTheme, useStyle
+├── tests/                  # Playwright E2E
+│   ├── e2e/                #   spec files
+│   ├── fixtures/sessions.js#   synthetic, real-shaped session fixtures
+│   └── setup/              #   fixture generator run before the test server
+├── playwright.config.js
 └── docker-compose.yml
 ```
 

@@ -38,7 +38,7 @@ export default function DetailPanel({ session, onClose }) {
 
   if (!session) {
     return (
-      <aside className="hidden w-96 shrink-0 flex-col items-center justify-center gap-3 border-l border-border ui-panel p-6 text-center lg:flex">
+      <aside data-testid="detail-panel" className="hidden w-96 shrink-0 flex-col items-center justify-center gap-3 border-l border-border ui-panel p-6 text-center lg:flex">
         <div className="ui-inset flex h-12 w-12 items-center justify-center rounded-full text-fg-subtle">
           <MessageSquare size={22} />
         </div>
@@ -50,7 +50,7 @@ export default function DetailPanel({ session, onClose }) {
   }
 
   return (
-    <aside className="relative z-10 flex w-96 shrink-0 flex-col border-l border-border ui-raised">
+    <aside data-testid="detail-panel" className="relative z-10 flex w-96 shrink-0 flex-col border-l border-border ui-raised">
       <div className="flex items-start justify-between gap-2 border-b border-border p-4">
         <h2 className="text-sm font-semibold text-fg">{session.title}</h2>
         <button

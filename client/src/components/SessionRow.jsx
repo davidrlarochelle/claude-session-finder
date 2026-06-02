@@ -6,6 +6,8 @@ export default function SessionRow({ session, selected, onSelect }) {
   return (
     <div
       onClick={() => onSelect(session)}
+      data-testid="session-row"
+      data-session-id={session.id}
       className={`group flex cursor-pointer flex-col gap-1 border-b border-border px-4 py-3 ${
         selected ? 'ui-row-selected' : 'ui-row'
       }`}

@@ -1,15 +1,23 @@
 import os from 'node:os';
 import path from 'node:path';
 
-/** Absolute path to ~/.claude/projects */
-export const PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
+/**
+ * Absolute path to ~/.claude/projects.
+ * Overridable via CLAUDE_PROJECTS_DIR — used by the E2E suite to point the
+ * server at a deterministic fixtures directory instead of the user's real data.
+ */
+export const PROJECTS_DIR =
+  process.env.CLAUDE_PROJECTS_DIR || path.join(os.homedir(), '.claude', 'projects');
 
-/** Where we persist the parsed index between runs. */
-export const CACHE_DIR = path.join(process.cwd(), '.cache');
+/**
+ * Where we persist the parsed index between runs.
+ * Overridable via CACHE_DIR so tests can use an isolated, disposable cache.
+ */
+export const CACHE_DIR = process.env.CACHE_DIR || path.join(process.cwd(), '.cache');
 export const CACHE_FILE = path.join(CACHE_DIR, 'session-index.json');
 
-/** Server port (see plan). */
-export const PORT = 37702;
+/** Server port (see plan). Overridable via PORT. */
+export const PORT = Number(process.env.PORT) || 37702;
 
 /**
  * Encoded project dir names replace path separators with "-", but project

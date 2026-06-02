@@ -1,0 +1,596 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Two independent axes:
+ *   1. Color theme  — `html.dark` swaps the semantic color tokens below.
+ *   2. Design style — `html[data-style="default|skeu|neu"]` swaps the *material*
+ *      treatment of the `.ui-*` primitives (flat / skeuomorphic / neumorphic).
+ * Color channels are space-separated RGB for `rgb(var() / <alpha>)`.
+ */
+
+/* ── Color tokens: light (the original flat palette) ─────────────────── */
+:root {
+  color-scheme: light;
+  --bg: 248 250 252; /* slate-50 */
+  --surface: 255 255 255; /* white */
+  --surface-hover: 241 245 249; /* slate-100 */
+  --border: 226 232 240; /* slate-200 */
+  --fg: 15 23 42; /* slate-900 */
+  --fg-muted: 100 116 139; /* slate-500 */
+  --fg-subtle: 148 163 184; /* slate-400 */
+  --accent: 217 119 87; /* warm terracotta */
+  --accent-fg: 255 255 255;
+  --accent-soft: 253 240 233; /* accent tint */
+
+  /* A gentle pressed shadow used by the copy-confirmation state in any style. */
+  --shadow-pressed: inset 0 1px 2px rgb(15 23 42 / 0.12);
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: 8 11 22;
+  --surface: 17 24 39;
+  --surface-hover: 30 41 59; /* slate-800 */
+  --border: 34 45 64;
+  --fg: 241 245 249; /* slate-100 */
+  --fg-muted: 148 163 184; /* slate-400 */
+  --fg-subtle: 100 116 139; /* slate-500 */
+  --accent: 234 142 107;
+  --accent-fg: 25 14 9;
+  --accent-soft: 52 33 27;
+
+  --shadow-pressed: inset 0 1px 2px rgb(0 0 0 / 0.5);
+}
+
+/* ── Skeuomorphism material variables ────────────────────────────────── */
+/* Light source is the top: highlights on top edges, shadows below.       */
+html[data-style='skeu'] {
+  --bg: 233 236 242; /* deeper so raised surfaces read as lifted */
+  --border: 209 217 229;
+
+  --skeu-hl: 255 255 255;
+  --skeu-sh: 15 23 42;
+
+  --surface-top: 255 255 255;
+  --surface-bottom: 232 237 244;
+  --sunken-top: 219 225 235;
+  --sunken-bottom: 241 244 249;
+  --sidebar-top: 244 247 251;
+  --sidebar-bottom: 222 228 238;
+  --accent-top: 233 147 115;
+  --accent-bottom: 196 96 64;
+
+  --shadow-raised:
+    inset 0 1px 0 rgb(var(--skeu-hl) / 0.9),
+    inset 0 -1px 1px rgb(var(--skeu-sh) / 0.05),
+    0 1px 2px rgb(var(--skeu-sh) / 0.1),
+    0 3px 6px rgb(var(--skeu-sh) / 0.08),
+    0 6px 16px rgb(var(--skeu-sh) / 0.05);
+  --shadow-inset:
+    inset 0 2px 4px rgb(var(--skeu-sh) / 0.13),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.1),
+    0 1px 0 rgb(var(--skeu-hl) / 0.7);
+  --shadow-display:
+    inset 0 2px 6px rgb(var(--skeu-sh) / 0.18),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.14),
+    0 1px 0 rgb(var(--skeu-hl) / 0.6);
+  --shadow-pressed:
+    inset 0 2px 4px rgb(var(--skeu-sh) / 0.2),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.12);
+  --shadow-accent:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -2px 4px rgb(var(--skeu-sh) / 0.2),
+    0 1px 2px rgb(var(--accent-bottom) / 0.5),
+    0 3px 8px rgb(var(--skeu-sh) / 0.22);
+  --shadow-accent-pressed:
+    inset 0 2px 5px rgb(var(--skeu-sh) / 0.35),
+    inset 0 1px 1px rgb(var(--skeu-sh) / 0.2);
+
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+html[data-style='skeu'].dark {
+  --border: 38 50 70;
+
+  --skeu-hl: 255 255 255;
+  --skeu-sh: 0 0 0;
+
+  --surface-top: 32 41 58;
+  --surface-bottom: 18 25 39;
+  --sunken-top: 6 9 16;
+  --sunken-bottom: 20 27 42;
+  --sidebar-top: 24 32 47;
+  --sidebar-bottom: 11 16 28;
+  --accent-top: 240 154 120;
+  --accent-bottom: 205 112 78;
+
+  --shadow-raised:
+    inset 0 1px 0 rgb(var(--skeu-hl) / 0.07),
+    inset 0 -1px 1px rgb(var(--skeu-sh) / 0.3),
+    0 1px 2px rgb(var(--skeu-sh) / 0.5),
+    0 3px 6px rgb(var(--skeu-sh) / 0.45),
+    0 6px 16px rgb(var(--skeu-sh) / 0.4);
+  --shadow-inset:
+    inset 0 2px 5px rgb(var(--skeu-sh) / 0.6),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.5),
+    0 1px 0 rgb(var(--skeu-hl) / 0.05);
+  --shadow-display:
+    inset 0 2px 8px rgb(var(--skeu-sh) / 0.7),
+    inset 0 1px 3px rgb(var(--skeu-sh) / 0.6),
+    0 1px 0 rgb(var(--skeu-hl) / 0.05);
+  --shadow-pressed:
+    inset 0 2px 5px rgb(var(--skeu-sh) / 0.6),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.45);
+  --shadow-accent:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 -2px 4px rgb(var(--skeu-sh) / 0.35),
+    0 1px 2px rgb(var(--skeu-sh) / 0.6),
+    0 3px 8px rgb(var(--skeu-sh) / 0.5);
+  --shadow-accent-pressed:
+    inset 0 2px 6px rgb(var(--skeu-sh) / 0.7),
+    inset 0 1px 2px rgb(var(--skeu-sh) / 0.4);
+
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── Neumorphism material variables ──────────────────────────────────── */
+/* Monochrome: surfaces share the page color, shaped by a soft dual shadow */
+/* (light from top-left, shadow at bottom-right).                         */
+html[data-style='neu'] {
+  --bg: 224 229 236; /* #e0e5ec */
+  --surface: 224 229 236;
+  --surface-hover: 216 222 231;
+  --border: 210 216 226;
+  --fg: 74 84 102;
+  --fg-muted: 116 126 142;
+  --fg-subtle: 150 159 174;
+  --accent: 213 116 84;
+  --accent-fg: 255 255 255;
+  --accent-soft: 223 215 209;
+
+  --neu-hl: 255 255 255;
+  --neu-sh: 154 167 192;
+
+  --neu-raised: 8px 8px 18px rgb(var(--neu-sh) / 0.8), -8px -8px 18px rgb(var(--neu-hl) / 0.95);
+  --neu-raised-sm: 5px 5px 11px rgb(var(--neu-sh) / 0.72), -5px -5px 11px rgb(var(--neu-hl) / 0.9);
+  --neu-inset: inset 6px 6px 12px rgb(var(--neu-sh) / 0.8), inset -6px -6px 12px rgb(var(--neu-hl) / 0.9);
+  --neu-inset-sm: inset 3px 3px 7px rgb(var(--neu-sh) / 0.7), inset -3px -3px 7px rgb(var(--neu-hl) / 0.85);
+}
+
+html[data-style='neu'].dark {
+  --bg: 39 42 50; /* slate charcoal */
+  --surface: 39 42 50;
+  --surface-hover: 35 38 45;
+  --border: 46 50 59;
+  --fg: 200 206 216;
+  --fg-muted: 142 150 164;
+  --fg-subtle: 108 116 130;
+  --accent: 234 142 107;
+  --accent-fg: 28 17 11;
+  --accent-soft: 52 45 41;
+
+  --neu-hl: 70 78 94;
+  --neu-sh: 2 3 6;
+}
+
+/* ── Liquid Glass material variables ─────────────────────────────────── */
+/* Translucent frosted surfaces over a colourful backdrop; bright spec    */
+/* rims and a top sheen sell the "lens" feel.                             */
+html[data-style='glass'] {
+  --bg: 234 240 250; /* fallback; the live backdrop lives on .ui-app */
+  --surface: 255 255 255;
+  --surface-hover: 255 255 255;
+  --border: 226 232 240;
+  --fg: 17 24 39;
+  --fg-muted: 51 65 85;
+  --fg-subtle: 100 116 139;
+  --accent: 217 119 87;
+  --accent-fg: 255 255 255;
+  --accent-soft: 253 240 233;
+
+  --glass-rgb: 255 255 255; /* frost tint */
+  --glass-rim: 255 255 255; /* specular edge highlight */
+  --glass-blur: 20px;
+}
+
+html[data-style='glass'].dark {
+  --bg: 11 16 30;
+  --surface: 17 24 39;
+  --surface-hover: 30 41 59;
+  --border: 71 85 105;
+  --fg: 241 245 249;
+  --fg-muted: 203 213 225;
+  --fg-subtle: 148 163 184;
+  --accent: 240 150 115;
+  --accent-fg: 25 14 9;
+  --accent-soft: 60 40 32;
+
+  --glass-rgb: 26 34 52; /* cool dark glass */
+  --glass-rim: 255 255 255;
+  --glass-blur: 22px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Skeuomorphism dusts the backdrop with faint film grain. */
+html[data-style='skeu'] body {
+  background-image: var(--noise);
+}
+
+/* ── UI primitives ───────────────────────────────────────────────────── */
+/* Base rules are the DEFAULT (flat) style; the per-style scopes below     */
+/* override the material treatment.                                        */
+@layer components {
+  /* Flat / default --------------------------------------------------- */
+  .ui-app {
+    background-color: rgb(var(--bg));
+  }
+  .ui-panel {
+    background-color: rgb(var(--surface));
+  }
+  .ui-raised {
+    background-color: rgb(var(--surface));
+  }
+  .ui-inset {
+    background-color: rgb(var(--surface-hover));
+  }
+  .ui-display {
+    background-color: rgb(var(--bg));
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  .ui-btn {
+    background-color: rgb(var(--surface));
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  .ui-btn:hover {
+    background-color: rgb(var(--surface-hover));
+  }
+  .ui-btn:disabled {
+    opacity: 0.5;
+  }
+  .ui-btn-accent {
+    color: rgb(var(--accent-fg));
+    background-color: rgb(var(--accent));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+    transition: filter 0.12s ease;
+  }
+  .ui-btn-accent:hover {
+    filter: brightness(1.03);
+  }
+  .ui-input {
+    background-color: rgb(var(--bg));
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .ui-input:focus {
+    outline: none;
+    border-color: rgb(var(--accent));
+    box-shadow: 0 0 0 2px rgb(var(--accent) / 0.3);
+  }
+  .ui-row {
+    border-left: 2px solid transparent;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+  }
+  .ui-row:hover {
+    background-color: rgb(var(--surface-hover));
+    border-left-color: rgb(var(--border));
+  }
+  .ui-row-selected {
+    border-left: 2px solid rgb(var(--accent));
+    background-color: rgb(var(--accent-soft));
+  }
+  .ui-chip {
+    box-shadow: none;
+  }
+
+  /* Skeuomorphic ----------------------------------------------------- */
+  html[data-style='skeu'] .ui-panel {
+    background-image: var(--noise), linear-gradient(to bottom, rgb(var(--sidebar-top)), rgb(var(--sidebar-bottom)));
+  }
+  html[data-style='skeu'] .ui-raised {
+    background-image: linear-gradient(to bottom, rgb(var(--surface-top)), rgb(var(--surface-bottom)));
+    box-shadow: var(--shadow-raised);
+  }
+  html[data-style='skeu'] .ui-inset {
+    background-image: linear-gradient(to bottom, rgb(var(--sunken-top)), rgb(var(--sunken-bottom)));
+    box-shadow: var(--shadow-inset);
+  }
+  html[data-style='skeu'] .ui-display {
+    background-image: linear-gradient(to bottom, rgb(var(--sunken-top)), rgb(var(--sunken-bottom)));
+    box-shadow: var(--shadow-display);
+  }
+  html[data-style='skeu'] .ui-btn {
+    background-image: linear-gradient(to bottom, rgb(var(--surface-top)), rgb(var(--surface-bottom)));
+    box-shadow: var(--shadow-raised);
+    transition: transform 0.06s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  }
+  html[data-style='skeu'] .ui-btn:hover {
+    filter: brightness(1.03);
+    background-color: transparent;
+  }
+  html[data-style='skeu'] .ui-btn:active {
+    box-shadow: var(--shadow-pressed);
+    transform: translateY(1px);
+    background-image: linear-gradient(to bottom, rgb(var(--surface-bottom)), rgb(var(--surface-top)));
+  }
+  html[data-style='skeu'] .ui-btn:disabled {
+    box-shadow: var(--shadow-raised);
+    transform: none;
+    filter: none;
+  }
+  html[data-style='skeu'] .ui-btn-accent {
+    background-image:
+      linear-gradient(to bottom, rgb(255 255 255 / 0.25), rgb(255 255 255 / 0) 48%),
+      linear-gradient(to bottom, rgb(var(--accent-top)), rgb(var(--accent-bottom)));
+    box-shadow: var(--shadow-accent);
+    transition: transform 0.06s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  }
+  html[data-style='skeu'] .ui-btn-accent:hover {
+    filter: brightness(1.05) saturate(1.05);
+  }
+  html[data-style='skeu'] .ui-btn-accent:active {
+    box-shadow: var(--shadow-accent-pressed);
+    transform: translateY(1px);
+    background-image:
+      linear-gradient(to bottom, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0) 48%),
+      linear-gradient(to bottom, rgb(var(--accent-bottom)), rgb(var(--accent-top)));
+  }
+  html[data-style='skeu'] .ui-input {
+    background-image: linear-gradient(to bottom, rgb(var(--sunken-top)), rgb(var(--sunken-bottom)));
+    box-shadow: var(--shadow-inset);
+  }
+  html[data-style='skeu'] .ui-input:focus {
+    border-color: rgb(var(--border));
+    box-shadow: var(--shadow-inset), 0 0 0 3px rgb(var(--accent) / 0.3);
+  }
+  html[data-style='skeu'] .ui-row {
+    border-left: 0;
+    background-image: linear-gradient(to bottom, rgb(var(--surface-top)), rgb(var(--surface-bottom)));
+    box-shadow: inset 0 1px 0 rgb(var(--skeu-hl) / 0.55), inset 0 -1px 0 rgb(var(--skeu-sh) / 0.05);
+    transition: filter 0.1s ease;
+  }
+  html[data-style='skeu'] .ui-row:hover {
+    filter: brightness(1.04);
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+  html[data-style='skeu'] .ui-row-selected {
+    border-left: 0;
+    background-color: rgb(var(--accent-soft));
+    box-shadow:
+      inset 0 2px 5px rgb(var(--skeu-sh) / 0.08),
+      inset 3px 0 0 rgb(var(--accent)),
+      inset 0 1px 0 rgb(var(--skeu-hl) / 0.3);
+  }
+  html[data-style='skeu'] .ui-chip {
+    box-shadow: inset 0 1px 2px rgb(var(--skeu-sh) / 0.12), 0 1px 0 rgb(var(--skeu-hl) / 0.5);
+  }
+
+  /* Neumorphic ------------------------------------------------------- */
+  html[data-style='neu'] .ui-panel {
+    background-color: rgb(var(--bg));
+  }
+  html[data-style='neu'] .ui-raised {
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-raised);
+  }
+  html[data-style='neu'] .ui-inset {
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-inset);
+  }
+  html[data-style='neu'] .ui-display {
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-inset);
+  }
+  html[data-style='neu'] .ui-btn {
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-raised-sm);
+    transition: box-shadow 0.15s ease, color 0.12s ease;
+  }
+  html[data-style='neu'] .ui-btn:hover {
+    background-color: rgb(var(--bg));
+  }
+  html[data-style='neu'] .ui-btn:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+  html[data-style='neu'] .ui-btn:disabled {
+    box-shadow: var(--neu-raised-sm);
+  }
+  html[data-style='neu'] .ui-btn-accent {
+    background-color: rgb(var(--accent));
+    box-shadow: var(--neu-raised-sm);
+    transition: box-shadow 0.15s ease, filter 0.12s ease;
+  }
+  html[data-style='neu'] .ui-btn-accent:hover {
+    filter: brightness(1.04);
+  }
+  html[data-style='neu'] .ui-btn-accent:active {
+    box-shadow: var(--neu-inset-sm);
+  }
+  html[data-style='neu'] .ui-input {
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-inset-sm);
+  }
+  html[data-style='neu'] .ui-input:focus {
+    border-color: transparent;
+    box-shadow: var(--neu-inset-sm), 0 0 0 2px rgb(var(--accent) / 0.35);
+  }
+  html[data-style='neu'] .ui-row {
+    border-left: 0;
+    background-color: transparent;
+    transition: box-shadow 0.15s ease, background-color 0.12s ease;
+  }
+  html[data-style='neu'] .ui-row:hover {
+    background-color: rgb(var(--surface-hover));
+    border-left-color: transparent;
+  }
+  html[data-style='neu'] .ui-row-selected {
+    border-left: 0;
+    background-color: rgb(var(--bg));
+    box-shadow: var(--neu-inset), inset 4px 0 0 rgb(var(--accent));
+  }
+  html[data-style='neu'] .ui-chip {
+    box-shadow: var(--neu-inset-sm);
+  }
+
+  /* Liquid Glass ----------------------------------------------------- */
+  /* A living, colourful backdrop so the frosted panels have something  */
+  /* to refract.                                                        */
+  html[data-style='glass'] .ui-app {
+    background:
+      radial-gradient(900px 620px at 12% 6%, rgb(255 176 142 / 0.5), transparent 60%),
+      radial-gradient(820px 600px at 88% 4%, rgb(150 190 255 / 0.5), transparent 60%),
+      radial-gradient(900px 720px at 80% 94%, rgb(196 160 255 / 0.45), transparent 60%),
+      radial-gradient(820px 700px at 16% 96%, rgb(150 230 214 / 0.42), transparent 60%),
+      linear-gradient(135deg, rgb(238 242 250), rgb(226 233 245));
+  }
+  html[data-style='glass'].dark .ui-app {
+    background:
+      radial-gradient(900px 620px at 12% 6%, rgb(224 110 70 / 0.34), transparent 60%),
+      radial-gradient(820px 600px at 88% 4%, rgb(56 110 210 / 0.38), transparent 60%),
+      radial-gradient(900px 720px at 80% 94%, rgb(128 72 210 / 0.36), transparent 60%),
+      radial-gradient(820px 700px at 16% 96%, rgb(40 165 150 / 0.3), transparent 60%),
+      linear-gradient(135deg, rgb(11 16 30), rgb(9 13 24));
+  }
+
+  html[data-style='glass'] .ui-panel {
+    background-color: rgb(var(--glass-rgb) / 0.45);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    box-shadow: inset 0 1px 0 rgb(var(--glass-rim) / 0.5);
+  }
+  html[data-style='glass'] .ui-raised {
+    background-image: linear-gradient(to bottom, rgb(var(--glass-rim) / 0.16), rgb(var(--glass-rim) / 0) 45%);
+    background-color: rgb(var(--glass-rgb) / 0.55);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--glass-rim) / 0.6),
+      inset 0 0 0 1px rgb(var(--glass-rim) / 0.1),
+      0 8px 30px rgb(0 0 0 / 0.18);
+  }
+  html[data-style='glass'] .ui-inset {
+    background-color: rgb(var(--glass-rgb) / 0.32);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.12), inset 0 0 0 1px rgb(var(--glass-rim) / 0.18);
+  }
+  html[data-style='glass'] .ui-display {
+    background-color: rgb(var(--glass-rgb) / 0.4);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    backdrop-filter: blur(10px) saturate(150%);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.18), inset 0 0 0 1px rgb(var(--glass-rim) / 0.15);
+  }
+  html[data-style='glass'] .ui-btn {
+    background-image: linear-gradient(to bottom, rgb(var(--glass-rim) / 0.25), rgb(var(--glass-rim) / 0) 50%);
+    background-color: rgb(var(--glass-rgb) / 0.5);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--glass-rim) / 0.6),
+      inset 0 0 0 1px rgb(var(--glass-rim) / 0.12),
+      0 2px 8px rgb(0 0 0 / 0.14);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.06s ease;
+  }
+  html[data-style='glass'] .ui-btn:hover {
+    background-color: rgb(var(--glass-rgb) / 0.68);
+  }
+  html[data-style='glass'] .ui-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.18), inset 0 0 0 1px rgb(var(--glass-rim) / 0.1);
+  }
+  html[data-style='glass'] .ui-btn:disabled {
+    opacity: 0.5;
+  }
+  html[data-style='glass'] .ui-btn-accent {
+    color: rgb(var(--accent-fg));
+    background-image:
+      linear-gradient(to bottom, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0) 50%),
+      linear-gradient(to bottom, rgb(var(--accent) / 0.95), rgb(var(--accent) / 0.8));
+    -webkit-backdrop-filter: blur(8px) saturate(180%);
+    backdrop-filter: blur(8px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.55),
+      inset 0 0 0 1px rgb(255 255 255 / 0.18),
+      0 3px 12px rgb(var(--accent) / 0.4);
+    transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.06s ease;
+  }
+  html[data-style='glass'] .ui-btn-accent:hover {
+    filter: brightness(1.06) saturate(1.05);
+  }
+  html[data-style='glass'] .ui-btn-accent:active {
+    transform: translateY(1px);
+  }
+  html[data-style='glass'] .ui-input {
+    background-color: rgb(var(--glass-rgb) / 0.3);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(var(--glass-rim) / 0.15);
+  }
+  html[data-style='glass'] .ui-input:focus {
+    border-color: transparent;
+    box-shadow:
+      inset 0 1px 2px rgb(0 0 0 / 0.14),
+      inset 0 0 0 1px rgb(var(--glass-rim) / 0.2),
+      0 0 0 3px rgb(var(--accent) / 0.4);
+  }
+  html[data-style='glass'] .ui-row {
+    border-left: 0;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+  }
+  html[data-style='glass'] .ui-row:hover {
+    background-color: rgb(var(--glass-rgb) / 0.3);
+    border-left-color: transparent;
+  }
+  html[data-style='glass'] .ui-row-selected {
+    border-left: 0;
+    background-color: rgb(var(--accent) / 0.16);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
+    backdrop-filter: blur(8px) saturate(160%);
+    box-shadow: inset 0 1px 0 rgb(var(--glass-rim) / 0.3), inset 4px 0 0 rgb(var(--accent));
+  }
+  html[data-style='glass'] .ui-chip {
+    box-shadow: inset 0 0 0 1px rgb(var(--glass-rim) / 0.25), 0 1px 2px rgb(0 0 0 / 0.1);
+  }
+}
+
+/* Subtle, theme-aware scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--fg-subtle) / 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--fg-subtle) / 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--fg-subtle) / 0.6);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

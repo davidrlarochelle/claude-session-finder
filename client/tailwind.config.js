@@ -9,7 +9,7 @@ const token = (name) => `rgb(var(${name}) / <alpha-value>)`;
 /** @type {import('tailwindcss').Config} */
 export default {
   // Absolute globs so content is found regardless of the cwd npm runs from.
-  content: [path.join(dir, 'index.html'), path.join(dir, 'src/**/*.{js,jsx}')],
+  content: [path.join(dir, 'index.html'), path.join(dir, 'src/**/*.{js,jsx,ts,tsx}')],
   darkMode: 'class',
   theme: {
     extend: {

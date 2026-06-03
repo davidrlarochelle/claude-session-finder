@@ -18,15 +18,36 @@ This tool indexes them all and gives you a searchable, sortable list — then le
 
 ## ✨ Features
 
-- **Instant search & sort** across every session — by title, preview text, project, branch, date, or size.
+### Find any conversation
+- **Instant search** across title, preview, project, git branch, skill, or session id — sortable by
+  date, size, project, **tokens, duration, or tool calls**.
+- **Full-text content search** — flip on *Search contents* and the query runs against an embedded
+  SQLite **FTS5** index of every conversation, ranked by **BM25** relevance with highlighted snippets.
+- **Advanced filters** — narrow by model, git branch, *has tool errors*, or a date range, with an
+  active-filter badge and one-click clear.
+- **Project sidebar** — filter sessions by working directory, with per-project counts.
+- **Observer toggle** — [claude-mem](https://github.com/thedotmack/claude-mem) background observer
+  runs are hidden by default and revealed on demand.
+
+### Understand your usage
+- **Analytics dashboard** — KPI cards (sessions, tokens in/out, estimated cost, tool calls, total
+  time, tool errors), a GitHub-style **activity heatmap**, and ranked breakdowns by project, model,
+  and most-used tools. Scopes to the selected project; cost is an estimate from per-model list prices.
+- **Rich metadata badges** — every row shows duration, token totals, top tool, and tool-error count;
+  the detail panel adds a per-tool breakdown, stop reason, skill attribution, and a thinking indicator.
+- **Conversation preview** — the detail panel lazily loads the first ~20 human/assistant turns.
+
+### Resume in one click
+- **Copy-paste resume command** — `cd <cwd> && claude --resume <id>` straight to your clipboard,
+  from any row or the detail panel.
+
+### Fast, local, polished
 - **Virtualized list** that stays smooth with 1000+ sessions.
-- **Project sidebar** to filter sessions by working directory.
-- **Detail panel** with a lazily-loaded conversation preview (first ~20 human/assistant turns).
-- **One-click resume** — copies `cd <cwd> && claude --resume <id>` ready to paste in your terminal.
-- **Advanced filters** — narrow by model, git branch, tool-errors, or a date range, with an active-filter count.
-- **Rich metadata** — token totals, tool usage, duration, and error/thinking signals surfaced as row badges.
-- **Incremental indexing** — only changed sessions are re-parsed on refresh, cached in an embedded SQLite database (better-sqlite3) by file `mtime`+size.
-- **Themes & design styles** — light/dark toggle plus four looks: flat, skeuomorphic, neumorphic, glass.
+- **Incremental indexing** — sessions are stream-parsed once into an embedded SQLite database
+  (better-sqlite3, WAL); on refresh only changed files (by `mtime`+size) are re-parsed.
+- **100 % local & read-only** — nothing leaves your machine; your sessions are never modified.
+- **Themes & design styles** — light/dark toggle plus four looks: flat, skeuomorphic, neumorphic,
+  liquid glass.
 
 ---
 
@@ -96,8 +117,9 @@ synthetic `.jsonl` sessions that faithfully replicate the on-disk shape of real 
 `ai-title` lines, the full user/assistant envelope, `thinking`/`text`/`tool_use`/`tool_result`
 blocks, observer runs, and even a malformed line — then points the server at it via the
 `CLAUDE_PROJECTS_DIR`, `CACHE_DIR`, and `PORT` env vars. Coverage spans loading, search, sorting, the
-project sidebar, the observer toggle, the detail panel, copy-to-clipboard, theming/design styles, and
-the REST API (including the path-traversal guard).
+project sidebar, the observer toggle, the detail panel, metric badges & advanced filters, the
+analytics dashboard, full-text content search, copy-to-clipboard, theming/design styles, and the
+REST API (including the path-traversal guard).
 
 ---
 
@@ -113,7 +135,9 @@ claude-session-finder/
 ├── client/                 # React + Vite + Tailwind (TypeScript)
 │   └── src/
 │       ├── App.tsx
-│       ├── components/      #   Toolbar, SessionList, SessionRow, DetailPanel, Filters, …
+│       ├── analytics.ts     #   client-side aggregation + cost estimate for the dashboard
+│       ├── components/      #   Toolbar, SessionList, SessionRow, DetailPanel, Filters,
+│       │                    #   Dashboard, Heatmap, …
 │       └── hooks/           #   useSessions, useTheme, useStyle
 ├── shared/
 │   └── types.ts            #   the Session shape shared by server + client
@@ -130,12 +154,13 @@ claude-session-finder/
 
 ## 🔌 API reference
 
-| Method | Endpoint                     | Description                                            |
-| ------ | ---------------------------- | ------------------------------------------------------ |
-| `GET`  | `/api/health`                | Health check + resolved projects directory             |
-| `GET`  | `/api/sessions`              | All session metadata + index stats                     |
-| `GET`  | `/api/sessions/:id/preview`  | First ~20 human/assistant text turns of a session      |
-| `POST` | `/api/refresh`               | Re-scan the projects directory (incremental)           |
+| Method | Endpoint                     | Description                                                      |
+| ------ | ---------------------------- | ---------------------------------------------------------------- |
+| `GET`  | `/api/health`                | Health check + resolved projects directory                       |
+| `GET`  | `/api/sessions`              | All session metadata + index stats                               |
+| `GET`  | `/api/search?q=…`            | Full-text search over conversation content (FTS5 + BM25), each hit with a highlighted snippet |
+| `GET`  | `/api/sessions/:id/preview`  | First ~20 human/assistant text turns of a session                |
+| `POST` | `/api/refresh`               | Re-scan the projects directory (incremental)                     |
 
 ---
 
@@ -148,9 +173,14 @@ claude-session-finder/
 - **`db.ts`** persists the parsed index to an embedded SQLite database (`.cache/sessions.db`) via
   better-sqlite3 — a `sessions` table plus a `sessions_fts` FTS5 content index — keyed by each
   file's `mtime`+size. On refresh, unchanged sessions are reused and only modified ones re-parsed.
+- **Full-text search** is served from the same database: `GET /api/search` builds a safe FTS5
+  `MATCH` expression (tokenized prefix terms — no operators can leak in), orders hits by `bm25()`,
+  and returns `snippet()` excerpts whose matches are wrapped in control-char sentinels that the
+  client renders as `<mark>` highlights — user content is never interpreted as HTML.
 - **`client/`** renders a virtualized list (via `@tanstack/react-virtual`) so large histories scroll
   smoothly, with search/sort/filters, a project sidebar, and a detail panel that fetches the
-  conversation preview on demand.
+  conversation preview on demand. The analytics dashboard is computed entirely client-side
+  ([`analytics.ts`](client/src/analytics.ts)) from the same `/api/sessions` payload the list uses.
 
 The server port is defined in [`server/paths.ts`](server/paths.ts) (`37702`), and sessions are read
 from `~/.claude/projects/`. A shared `Session` type in [`shared/types.ts`](shared/types.ts) keeps the

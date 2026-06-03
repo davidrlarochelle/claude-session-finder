@@ -85,3 +85,6 @@ export interface HealthResponse {
 
 /** Keys of the sort functions offered in the toolbar. */
 export type SortKey = 'recent' | 'oldest' | 'size' | 'project' | 'tokens' | 'duration' | 'tools';
+
+/** The main content view: the session list or the analytics dashboard. */
+export type ViewKey = 'list' | 'dashboard';

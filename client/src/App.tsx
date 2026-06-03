@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MessagesSquare, FolderSearch } from 'lucide-react';
-import type { Session } from '../../shared/types';
+import type { Session, ViewKey } from '../../shared/types';
 import { useSessions } from './hooks/useSessions';
 import { useTheme } from './hooks/useTheme';
 import { useStyle } from './hooks/useStyle';
+import { isObserverSession, OBSERVER_PROJECT } from './utils';
 import ProjectSidebar from './components/ProjectSidebar';
 import Toolbar from './components/Toolbar';
 import SessionList from './components/SessionList';
 import DetailPanel from './components/DetailPanel';
+import Dashboard from './components/Dashboard';
 
 export default function App() {
   const {
@@ -34,6 +36,15 @@ export default function App() {
   const [theme, toggleTheme] = useTheme();
   const [style, chooseStyle] = useStyle();
   const [selected, setSelected] = useState<Session | null>(null);
+  const [view, setView] = useState<ViewKey>('list');
+
+  // The dashboard analyzes interactive sessions only (observer runs excluded),
+  // narrowed to the selected project so the sidebar drills into both views.
+  const projectScope = project && project !== OBSERVER_PROJECT ? project : null;
+  const dashboardSessions = useMemo(() => {
+    const rows = all.filter((s) => !isObserverSession(s));
+    return projectScope ? rows.filter((s) => (s.project || '(unknown)') === projectScope) : rows;
+  }, [all, projectScope]);
 
   return (
     <div className="ui-app flex h-screen w-screen overflow-hidden text-fg">
@@ -56,6 +67,8 @@ export default function App() {
           style={style}
           onChangeStyle={chooseStyle}
           filters={filters}
+          view={view}
+          setView={setView}
         />
 
         {error && (
@@ -69,6 +82,8 @@ export default function App() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
             Loading sessions…
           </div>
+        ) : view === 'dashboard' ? (
+          <Dashboard sessions={dashboardSessions} project={projectScope} />
         ) : all.length === 0 && !error ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <div className="ui-btn-accent flex h-12 w-12 items-center justify-center rounded-full">
@@ -94,7 +109,7 @@ export default function App() {
         )}
       </main>
 
-      <DetailPanel session={selected} onClose={() => setSelected(null)} />
+      {view === 'list' && <DetailPanel session={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

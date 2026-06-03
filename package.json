@@ -6,10 +6,11 @@
   "description": "Browse, search and resume past Claude Code conversations",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
-    "dev:server": "node server/index.js",
+    "dev:server": "tsx server/index.ts",
     "dev:client": "vite --config client/vite.config.js",
     "build": "vite build --config client/vite.config.js",
-    "start": "NODE_ENV=production node server/index.js",
+    "start": "NODE_ENV=production tsx server/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p client/tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
@@ -22,6 +23,11 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tanstack/react-virtual": "^3.13.12",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^4.17.25",
+    "@types/node": "^22.19.19",
+    "@types/react": "^18.3.30",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
@@ -29,6 +35,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
     "vite": "^6.0.7"
   }
 }

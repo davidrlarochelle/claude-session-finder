@@ -1,0 +1,11 @@
+{
+  "//": "Playwright tests + setup scripts. Run under Playwright's loader / tsx (Node ESM), NodeNext with explicit .js specifiers.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "playwright.config.ts", "shared/**/*.ts"]
+}

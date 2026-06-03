@@ -1,0 +1,11 @@
+{
+  "//": "Server project. Runs under tsx (Node ESM), so NodeNext resolution with explicit .js import specifiers.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["server/**/*.ts", "shared/**/*.ts"]
+}

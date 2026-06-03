@@ -8,6 +8,7 @@ This tool indexes them all and gives you a searchable, sortable list — then le
 
 <p>
   <img alt="Node" src="https://img.shields.io/badge/Node-%E2%89%A518-339933?logo=node.js&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black">
   <img alt="Vite" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
   <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white">
@@ -22,7 +23,9 @@ This tool indexes them all and gives you a searchable, sortable list — then le
 - **Project sidebar** to filter sessions by working directory.
 - **Detail panel** with a lazily-loaded conversation preview (first ~20 human/assistant turns).
 - **One-click resume** — copies `cd <cwd> && claude --resume <id>` ready to paste in your terminal.
-- **Incremental indexing** — only changed sessions are re-parsed on refresh (cached by file `mtime`+size).
+- **Advanced filters** — narrow by model, git branch, tool-errors, or a date range, with an active-filter count.
+- **Rich metadata** — token totals, tool usage, duration, and error/thinking signals surfaced as row badges.
+- **Incremental indexing** — only changed sessions are re-parsed on refresh, cached in an embedded SQLite database (better-sqlite3) by file `mtime`+size.
 - **Themes & design styles** — light/dark toggle plus four looks: flat, skeuomorphic, neumorphic, glass.
 
 ---
@@ -88,7 +91,7 @@ npm run test:e2e:report           # open the last HTML report
 ```
 
 The suite **never touches your real `~/.claude/projects`**. Before the server boots, a generator
-([`tests/setup/prepare-fixtures.js`](tests/setup/prepare-fixtures.js)) writes a deterministic tree of
+([`tests/setup/prepare-fixtures.ts`](tests/setup/prepare-fixtures.ts)) writes a deterministic tree of
 synthetic `.jsonl` sessions that faithfully replicate the on-disk shape of real conversations —
 `ai-title` lines, the full user/assistant envelope, `thinking`/`text`/`tool_use`/`tool_result`
 blocks, observer runs, and even a malformed line — then points the server at it via the
@@ -102,21 +105,24 @@ the REST API (including the path-traversal guard).
 
 ```
 claude-session-finder/
-├── server/                 # Express API
-│   ├── index.js            #   routes + static serving in production
-│   ├── indexer.js          #   stream-parses .jsonl files for metadata
-│   ├── cache.js            #   persists .cache/session-index.json
-│   └── paths.js            #   PROJECTS_DIR, PORT, CACHE_DIR (env-overridable)
-├── client/                 # React + Vite + Tailwind
+├── server/                 # Express API (TypeScript, run via tsx — no build step)
+│   ├── index.ts            #   routes + static serving in production
+│   ├── indexer.ts          #   stream-parses .jsonl files into enriched metadata
+│   ├── db.ts               #   SQLite store (better-sqlite3) + FTS5 schema
+│   └── paths.ts            #   PROJECTS_DIR, PORT, CACHE_DIR (env-overridable)
+├── client/                 # React + Vite + Tailwind (TypeScript)
 │   └── src/
-│       ├── App.jsx
-│       ├── components/      #   Toolbar, SessionList, SessionRow, DetailPanel, …
+│       ├── App.tsx
+│       ├── components/      #   Toolbar, SessionList, SessionRow, DetailPanel, Filters, …
 │       └── hooks/           #   useSessions, useTheme, useStyle
-├── tests/                  # Playwright E2E
+├── shared/
+│   └── types.ts            #   the Session shape shared by server + client
+├── tests/                  # Playwright E2E (TypeScript)
 │   ├── e2e/                #   spec files
-│   ├── fixtures/sessions.js#   synthetic, real-shaped session fixtures
+│   ├── fixtures/sessions.ts#   synthetic, real-shaped session fixtures
 │   └── setup/              #   fixture generator run before the test server
-├── playwright.config.js
+├── playwright.config.ts
+├── tsconfig*.json          #   strict base + server / client / tests projects
 └── docker-compose.yml
 ```
 
@@ -135,17 +141,20 @@ claude-session-finder/
 
 ## ⚙️ How it works
 
-- **`indexer.js`** stream-parses each `.jsonl` line by line, extracting only lightweight metadata
-  (title, first-message preview, `cwd`, git branch, model, message count, timestamps, size). It
-  early-stops and bounds the line scan, so even pathological files stay cheap.
-- **`cache.js`** persists the parsed index to `.cache/session-index.json`, keyed by each file's
-  `mtime`+size. On refresh, unchanged sessions are reused and only modified ones re-parsed.
+- **`indexer.ts`** stream-parses each `.jsonl` line by line, extracting lightweight metadata
+  (title, first-message preview, `cwd`, git branch, model, message count, timestamps, size, plus
+  token totals, tool usage, duration, and error/thinking/skill signals). It early-stops and bounds
+  the line scan, so even pathological files stay cheap.
+- **`db.ts`** persists the parsed index to an embedded SQLite database (`.cache/sessions.db`) via
+  better-sqlite3 — a `sessions` table plus a `sessions_fts` FTS5 content index — keyed by each
+  file's `mtime`+size. On refresh, unchanged sessions are reused and only modified ones re-parsed.
 - **`client/`** renders a virtualized list (via `@tanstack/react-virtual`) so large histories scroll
-  smoothly, with search/sort, a project sidebar, and a detail panel that fetches the conversation
-  preview on demand.
+  smoothly, with search/sort/filters, a project sidebar, and a detail panel that fetches the
+  conversation preview on demand.
 
-The server port is defined in [`server/paths.js`](server/paths.js) (`37702`), and sessions are read
-from `~/.claude/projects/`.
+The server port is defined in [`server/paths.ts`](server/paths.ts) (`37702`), and sessions are read
+from `~/.claude/projects/`. A shared `Session` type in [`shared/types.ts`](shared/types.ts) keeps the
+server, API and client in lock-step.
 
 ---
 

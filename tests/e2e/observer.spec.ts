@@ -9,20 +9,20 @@ test.describe('hide-observer toggle', () => {
   });
 
   test('the toggle is present and checked, labelled with the observer count', async ({ page }) => {
-    const toggle = page.getByRole('checkbox');
+    const toggle = page.getByTestId('observer-toggle');
     await expect(toggle).toBeChecked();
     await expect(page.getByText(/Hide observer \(1\)/)).toBeVisible();
   });
 
   test('unchecking it reveals the observer session', async ({ page }) => {
     await expect(rows(page)).toHaveCount(VISIBLE.length);
-    await page.getByRole('checkbox').uncheck();
+    await page.getByTestId('observer-toggle').uncheck();
     await expect(rows(page)).toHaveCount(SESSIONS.length);
     await expect(page.getByRole('heading', { name: 'Observed: summarize recent changes' })).toBeVisible();
   });
 
   test('re-checking it hides the observer session again', async ({ page }) => {
-    const toggle = page.getByRole('checkbox');
+    const toggle = page.getByTestId('observer-toggle');
     await toggle.uncheck();
     await expect(rows(page)).toHaveCount(SESSIONS.length);
     await toggle.check();

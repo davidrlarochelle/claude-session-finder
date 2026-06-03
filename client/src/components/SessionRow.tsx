@@ -1,13 +1,52 @@
 import { GitBranch, Clock, Timer, Coins, Wrench, AlertTriangle } from 'lucide-react';
 import type React from 'react';
-import type { Session } from '../../../shared/types';
+import type { Session, ListSession } from '../../../shared/types';
 import CopyButton from './CopyButton';
 import { relativeTime, formatSize, shortId, resumeCommand, formatTokens, formatDuration } from '../utils';
 
 interface Props {
-  session: Session;
+  session: ListSession;
   selected: boolean;
   onSelect: (session: Session) => void;
+}
+
+/**
+ * Render an FTS snippet, highlighting the matched terms. The server wraps
+ * matches in the sentinel chars U+0001 (open) / U+0002 (close); we split on
+ * them and render plain text vs <mark> — no HTML is ever interpreted.
+ */
+function SearchSnippet({ text }: { text: string }) {
+  const parts: { hl: boolean; t: string }[] = [];
+  let buf = '';
+  let hl = false;
+  for (const ch of text) {
+    if (ch === '') {
+      if (buf) parts.push({ hl, t: buf });
+      buf = '';
+      hl = true;
+    } else if (ch === '') {
+      if (buf) parts.push({ hl, t: buf });
+      buf = '';
+      hl = false;
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf) parts.push({ hl, t: buf });
+
+  return (
+    <p data-testid="session-snippet" className="line-clamp-2 text-xs text-fg-muted">
+      {parts.map((p, i) =>
+        p.hl ? (
+          <mark key={i} className="rounded bg-accent-soft px-0.5 text-accent">
+            {p.t}
+          </mark>
+        ) : (
+          <span key={i}>{p.t}</span>
+        )
+      )}
+    </p>
+  );
 }
 
 export default function SessionRow({ session, selected, onSelect }: Props) {
@@ -31,7 +70,11 @@ export default function SessionRow({ session, selected, onSelect }: Props) {
           {relativeTime(session.mtimeMs)}
         </span>
       </div>
-      {session.preview && <p className="line-clamp-1 text-xs text-fg-muted">{session.preview}</p>}
+      {session.snippet ? (
+        <SearchSnippet text={session.snippet} />
+      ) : (
+        session.preview && <p className="line-clamp-1 text-xs text-fg-muted">{session.preview}</p>
+      )}
       <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-subtle">
         <span className="ui-chip rounded-md bg-accent-soft px-1.5 py-0.5 font-medium text-accent">{session.project}</span>
         {session.gitBranch && (

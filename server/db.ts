@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import Database from 'better-sqlite3';
-import type { SessionRecord, Session } from '../shared/types.js';
+import type { SessionRecord, Session, SearchResult } from '../shared/types.js';
 import { CACHE_DIR, DB_FILE } from './paths.js';
 
 /**
@@ -167,5 +167,42 @@ export function allSessions(): Session[] {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { path: _path, contentText: _contentText, ...rest } = rowToSession(row);
     return rest;
+  });
+}
+
+/**
+ * Turn free-text into a safe FTS5 MATCH expression: lowercase, keep only
+ * letter/number/underscore tokens (so no FTS operators can leak in), and
+ * prefix-match each so search behaves as-you-type. Returns null when empty.
+ */
+function buildMatch(query: string): string | null {
+  const terms = query.toLowerCase().match(/[\p{L}\p{N}_]+/gu);
+  if (!terms || terms.length === 0) return null;
+  return terms.map((t) => `${t}*`).join(' ');
+}
+
+// snippet() col 1 = `content`. Matched terms are wrapped in the literal U+0001
+// (open) / U+0002 (close) control chars below, so the client can render
+// highlights without HTML injection. Keep the sentinels in sync with the
+// renderSnippet() parser in SessionRow.tsx.
+const SEARCH_SQL = `
+  SELECT s.*, snippet(sessions_fts, 1, '', '', '…', 12) AS snippet
+  FROM sessions_fts
+  JOIN sessions s ON s.id = sessions_fts.id
+  WHERE sessions_fts MATCH ?
+  ORDER BY bm25(sessions_fts)
+  LIMIT ?
+`;
+
+/** Full-text search over conversation content, ranked by BM25 relevance. */
+export function searchSessions(query: string, limit = 100): SearchResult[] {
+  const match = buildMatch(query);
+  if (!match) return [];
+  const rows = getDb().prepare(SEARCH_SQL).all(match, limit) as (SessionRow & { snippet: string })[];
+  return rows.map((row) => {
+    const { snippet, ...rawRow } = row;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { path: _path, contentText: _contentText, ...session } = rowToSession(rawRow);
+    return { ...session, snippet };
   });
 }

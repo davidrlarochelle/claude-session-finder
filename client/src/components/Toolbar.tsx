@@ -74,6 +74,8 @@ interface Props {
   filters: FiltersProps | null | undefined;
   view: ViewKey;
   setView: (v: ViewKey) => void;
+  deepSearch: boolean;
+  setDeepSearch: (v: boolean) => void;
 }
 
 export default function Toolbar({
@@ -94,6 +96,8 @@ export default function Toolbar({
   filters,
   view,
   setView,
+  deepSearch,
+  setDeepSearch,
 }: Props) {
   return (
     <div className="relative z-10 flex items-center gap-3 border-b border-border ui-raised px-4 py-3">
@@ -110,6 +114,19 @@ export default function Toolbar({
               className="ui-input w-full rounded-lg border border-border py-2 pl-9 pr-3 text-sm text-fg placeholder:text-fg-subtle"
             />
           </div>
+          <label
+            className="flex cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-xs text-fg-muted"
+            title="Full-text search inside conversation content (ranked by relevance)"
+          >
+            <input
+              type="checkbox"
+              data-testid="deep-search-toggle"
+              checked={deepSearch}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeepSearch(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-border accent-accent"
+            />
+            Search contents
+          </label>
           {observerCount > 0 && (
             <label
               className="flex cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-xs text-fg-muted"
@@ -117,6 +134,7 @@ export default function Toolbar({
             >
               <input
                 type="checkbox"
+                data-testid="observer-toggle"
                 checked={hideObserver}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHideObserver(e.target.checked)}
                 className="h-3.5 w-3.5 rounded border-border accent-accent"

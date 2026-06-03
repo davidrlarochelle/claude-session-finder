@@ -31,6 +31,8 @@ export default function App() {
     observerCount,
     refresh,
     filters,
+    deepSearch,
+    setDeepSearch,
   } = useSessions();
 
   const [theme, toggleTheme] = useTheme();
@@ -69,6 +71,8 @@ export default function App() {
           filters={filters}
           view={view}
           setView={setView}
+          deepSearch={deepSearch}
+          setDeepSearch={setDeepSearch}
         />
 
         {error && (

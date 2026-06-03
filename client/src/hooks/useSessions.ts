@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Session, IndexStats, SortKey } from '../../../shared/types';
-import { fetchSessions, refreshSessions } from '../api';
+import type { Session, IndexStats, SortKey, ListSession, SearchResult } from '../../../shared/types';
+import { fetchSessions, refreshSessions, searchContent } from '../api';
 import { isObserverSession, OBSERVER_PROJECT } from '../utils';
 
 const tokensOf = (s: Session): number => (s.tokensIn || 0) + (s.tokensOut || 0);
@@ -34,6 +34,11 @@ export function useSessions() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  // Deep (full-text) search over conversation content, served by the FTS index.
+  const [deepSearch, setDeepSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -65,6 +70,23 @@ export function useSessions() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Debounced content search: hit the FTS endpoint while deep search is on.
+  useEffect(() => {
+    if (!deepSearch || !query.trim()) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = setTimeout(() => {
+      searchContent(query)
+        .then((r) => setSearchResults(r.results))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [deepSearch, query]);
 
   // Project list with counts, sorted by count desc.
   const projects = useMemo(() => {
@@ -104,9 +126,12 @@ export function useSessions() {
     setDateTo('');
   }, []);
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<ListSession[]>(() => {
     const q = query.trim().toLowerCase();
-    let rows = all;
+    // Deep mode draws from the relevance-ranked FTS results; otherwise from the
+    // full in-memory list with the as-you-type metadata match.
+    const deep = deepSearch && q.length > 0;
+    let rows: ListSession[] = deep ? searchResults : all;
     // Hide observer sessions unless that project is explicitly selected.
     if (hideObserver && project !== OBSERVER_PROJECT) {
       rows = rows.filter((s) => !isObserverSession(s));
@@ -123,6 +148,9 @@ export function useSessions() {
         return t >= from && t <= to;
       });
     }
+    // Deep mode preserves the server's BM25 relevance order. The metadata
+    // match and sort dropdown only apply to the in-memory list.
+    if (deep) return rows;
     if (q) {
       rows = rows.filter((s) => {
         return (
@@ -137,7 +165,7 @@ export function useSessions() {
     }
     const sortFn = SORTS[sort] ?? SORTS.recent;
     return [...rows].sort(sortFn);
-  }, [all, query, project, sort, hideObserver, modelFilter, branchFilter, errorsOnly, dateFrom, dateTo]);
+  }, [all, searchResults, deepSearch, query, project, sort, hideObserver, modelFilter, branchFilter, errorsOnly, dateFrom, dateTo]);
 
   return {
     all,
@@ -157,6 +185,9 @@ export function useSessions() {
     setHideObserver,
     observerCount,
     refresh,
+    deepSearch,
+    setDeepSearch,
+    searching,
     filters: {
       model: modelFilter,
       setModel: setModelFilter,

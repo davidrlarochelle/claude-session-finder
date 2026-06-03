@@ -2,9 +2,10 @@ import express, { type Request, type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { SessionsResponse, PreviewResponse, HealthResponse } from '../shared/types.js';
+import type { SessionsResponse, PreviewResponse, HealthResponse, SearchResponse } from '../shared/types.js';
 import { PORT, PROJECTS_DIR } from './paths.js';
 import { buildIndex, readTurns, findSessionFile } from './indexer.js';
+import { searchSessions } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'client', 'dist');
@@ -43,6 +44,19 @@ app.post('/api/refresh', async (_req: Request, res: Response) => {
   try {
     await refresh(false);
     const body: SessionsResponse = { sessions: indexState.sessions, stats: indexState.stats };
+    res.json(body);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get('/api/search', async (req: Request, res: Response) => {
+  try {
+    // Ensure the FTS index is built before the very first query.
+    if (!indexState.stats.total && !indexState.stats.parsed) await refresh();
+    const q = typeof req.query['q'] === 'string' ? req.query['q'] : '';
+    const limit = Math.min(Number(req.query['limit']) || 100, 200);
+    const body: SearchResponse = { q, results: searchSessions(q, limit) };
     res.json(body);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

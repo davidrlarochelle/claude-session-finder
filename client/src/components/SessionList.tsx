@@ -1,11 +1,11 @@
 import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SearchX } from 'lucide-react';
-import type { Session } from '../../../shared/types';
+import type { Session, ListSession } from '../../../shared/types';
 import SessionRow from './SessionRow';
 
 interface Props {
-  sessions: Session[];
+  sessions: ListSession[];
   selectedId: string | undefined;
   onSelect: (session: Session) => void;
 }

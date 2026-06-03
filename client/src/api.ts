@@ -1,4 +1,4 @@
-import type { SessionsResponse, PreviewResponse } from '../../shared/types';
+import type { SessionsResponse, PreviewResponse, SearchResponse } from '../../shared/types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -18,4 +18,8 @@ export function refreshSessions(): Promise<SessionsResponse> {
 
 export function fetchPreview(id: string): Promise<PreviewResponse> {
   return fetch(`/api/sessions/${id}/preview`).then(json<PreviewResponse>);
+}
+
+export function searchContent(q: string): Promise<SearchResponse> {
+  return fetch(`/api/search?q=${encodeURIComponent(q)}`).then(json<SearchResponse>);
 }

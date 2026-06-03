@@ -63,6 +63,24 @@ export interface SessionsResponse {
   stats: IndexStats;
 }
 
+/**
+ * A search hit: a full `Session` plus an FTS `snippet`. Matched terms in the
+ * snippet are wrapped in the sentinel chars U+0001 (open) / U+0002 (close) so
+ * the client can render highlights without any HTML injection.
+ */
+export interface SearchResult extends Session {
+  snippet: string;
+}
+
+/** Response of `GET /api/search?q=…`. */
+export interface SearchResponse {
+  q: string;
+  results: SearchResult[];
+}
+
+/** A session as rendered in the list — optionally carrying a search snippet. */
+export type ListSession = Session & { snippet?: string };
+
 /** A single rendered conversation turn in the detail preview. */
 export interface Turn {
   role: 'user' | 'assistant';

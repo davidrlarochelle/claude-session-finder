@@ -49,7 +49,7 @@ function ViewToggle({ view, setView }: { view: ViewKey; setView: (v: ViewKey) =>
     </button>
   );
   return (
-    <div className="ui-inset flex items-center gap-0.5 rounded-lg p-0.5">
+    <div className="ui-inset flex shrink-0 items-center gap-0.5 rounded-lg p-0.5">
       {btn('list', List, 'List', 'view-list')}
       {btn('dashboard', BarChart3, 'Dashboard', 'view-dashboard')}
     </div>
@@ -99,77 +99,99 @@ export default function Toolbar({
   deepSearch,
   setDeepSearch,
 }: Props) {
+  const isList = view === 'list';
   return (
-    <div className="relative z-10 flex items-center gap-3 border-b border-border ui-raised px-4 py-3">
-      <ViewToggle view={view} setView={setView} />
-
-      {view === 'list' ? (
-        <>
-          <div className="relative flex-1">
+    <div className="relative z-10 flex flex-col gap-2 border-b border-border ui-raised px-4 py-2.5">
+      {/* Row 1 — view switch + the search field, which gets the whole row. */}
+      <div className="flex items-center gap-3">
+        <ViewToggle view={view} setView={setView} />
+        {isList ? (
+          <div className="relative min-w-0 flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
             <input
               value={query}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-              placeholder="Search title, preview, project, branch or id…"
+              placeholder={
+                deepSearch
+                  ? 'Search title, preview & conversation contents…'
+                  : 'Search title, preview, project, branch or id…'
+              }
               className="ui-input w-full rounded-lg border border-border py-2 pl-9 pr-3 text-sm text-fg placeholder:text-fg-subtle"
             />
           </div>
-          <label
-            className="flex cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-xs text-fg-muted"
-            title="Full-text search inside conversation content (ranked by relevance)"
-          >
-            <input
-              type="checkbox"
-              data-testid="deep-search-toggle"
-              checked={deepSearch}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeepSearch(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-border accent-accent"
-            />
-            Search contents
-          </label>
-          {observerCount > 0 && (
+        ) : (
+          <div className="flex-1 text-sm font-medium text-fg-muted">Analytics dashboard</div>
+        )}
+      </div>
+
+      {/* Row 2 — secondary: scope toggles (left); results, filters, sort, refresh
+          and appearance (right). Wraps on narrow widths. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-fg-muted">
+        {isList && (
+          <>
             <label
-              className="flex cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-xs text-fg-muted"
-              title={`${observerCount} claude-mem observer-agent sessions`}
+              className="flex cursor-pointer select-none items-center gap-1.5"
+              title="Full-text search inside conversation content (ranked by relevance)"
             >
               <input
                 type="checkbox"
-                data-testid="observer-toggle"
-                checked={hideObserver}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHideObserver(e.target.checked)}
+                data-testid="deep-search-toggle"
+                checked={deepSearch}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeepSearch(e.target.checked)}
                 className="h-3.5 w-3.5 rounded border-border accent-accent"
               />
-              Hide observer ({observerCount})
+              Search contents
             </label>
-          )}
-          <span className="hidden whitespace-nowrap text-xs tabular-nums text-fg-muted sm:inline">{count} shown</span>
-          {filters && <Filters {...filters} />}
-          <select
-            value={sort}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSort(e.target.value as SortKey)}
-            className="ui-btn rounded-lg border border-border px-2.5 py-2 text-sm text-fg-muted focus:outline-none"
-          >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : (
-        <div className="flex-1" />
-      )}
+            {observerCount > 0 && (
+              <label
+                className="flex cursor-pointer select-none items-center gap-1.5"
+                title={`${observerCount} claude-mem observer-agent sessions`}
+              >
+                <input
+                  type="checkbox"
+                  data-testid="observer-toggle"
+                  checked={hideObserver}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHideObserver(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-accent"
+                />
+                Hide observer ({observerCount})
+              </label>
+            )}
+          </>
+        )}
 
-      <button
-        onClick={onRefresh}
-        disabled={refreshing}
-        className="ui-btn inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg-muted hover:text-fg disabled:opacity-50"
-      >
-        <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-        {refreshing ? 'Refreshing…' : 'Refresh'}
-      </button>
-      <StyleSwitcher style={style} onChange={onChangeStyle} />
-      <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <div className="ml-auto flex items-center gap-3">
+          {isList && (
+            <>
+              <span className="whitespace-nowrap tabular-nums text-fg-subtle">{count} shown</span>
+              {filters && <Filters {...filters} />}
+              <select
+                value={sort}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSort(e.target.value as SortKey)}
+                className="ui-btn rounded-lg border border-border px-2.5 py-1.5 text-sm text-fg-muted focus:outline-none"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Re-index sessions"
+            className="ui-btn inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm font-medium text-fg-muted hover:text-fg disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+          </button>
+          <div className="h-6 w-px bg-border" aria-hidden="true" />
+          <StyleSwitcher style={style} onChange={onChangeStyle} />
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
+      </div>
     </div>
   );
 }

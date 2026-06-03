@@ -1,12 +1,16 @@
 import { Search, RefreshCw } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import StyleSwitcher from './StyleSwitcher.jsx';
+import Filters from './Filters.jsx';
 
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Recent' },
   { value: 'oldest', label: 'Oldest' },
   { value: 'size', label: 'Size' },
   { value: 'project', label: 'Project A–Z' },
+  { value: 'tokens', label: 'Tokens' },
+  { value: 'duration', label: 'Duration' },
+  { value: 'tools', label: 'Tool calls' },
 ];
 
 export default function Toolbar({
@@ -24,6 +28,7 @@ export default function Toolbar({
   onToggleTheme,
   style,
   onChangeStyle,
+  filters,
 }) {
   return (
     <div className="relative z-10 flex items-center gap-3 border-b border-border ui-raised px-4 py-3">
@@ -51,6 +56,7 @@ export default function Toolbar({
         </label>
       )}
       <span className="hidden whitespace-nowrap text-xs tabular-nums text-fg-muted sm:inline">{count} shown</span>
+      {filters && <Filters {...filters} />}
       <select
         value={sort}
         onChange={(e) => setSort(e.target.value)}

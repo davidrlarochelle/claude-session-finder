@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { X, Folder, GitBranch, Clock, HardDrive, MessageSquare, Cpu, Terminal } from 'lucide-react';
+import { X, Folder, GitBranch, Clock, HardDrive, MessageSquare, Cpu, Terminal, Timer, Coins, Wrench, Brain, AlertTriangle, Sparkles } from 'lucide-react';
 import CopyButton from './CopyButton.jsx';
 import { fetchPreview } from '../api.js';
-import { relativeTime, formatSize, resumeCommand } from '../utils.js';
+import { relativeTime, formatSize, resumeCommand, formatCount, formatDuration } from '../utils.js';
 
 function Field({ icon: Icon, label, children }) {
   return (
@@ -81,12 +81,59 @@ export default function DetailPanel({ session, onClose }) {
           <Field icon={Folder} label="Project">{session.project}</Field>
           <Field icon={GitBranch} label="Branch">{session.gitBranch || '—'}</Field>
           <Field icon={Clock} label="Last active">{relativeTime(session.mtimeMs)}</Field>
-          <Field icon={HardDrive} label="Size">{formatSize(session.sizeBytes)}</Field>
+          <Field icon={Timer} label="Duration">{session.durationMs ? formatDuration(session.durationMs) : '—'}</Field>
           <Field icon={MessageSquare} label="Messages">
             {session.countCapped ? `${session.messageCount}+` : session.messageCount}
           </Field>
+          <Field icon={Coins} label="Tokens">
+            {formatCount(session.tokensIn || 0)} in · {formatCount(session.tokensOut || 0)} out
+          </Field>
           <Field icon={Cpu} label="Model">{session.model || '—'}</Field>
+          <Field icon={HardDrive} label="Size">{formatSize(session.sizeBytes)}</Field>
         </div>
+
+        {session.toolCallCount > 0 && (
+          <div data-testid="detail-tools">
+            <span className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-fg-subtle">
+              <Wrench size={12} />
+              Tools used ({session.toolCallCount})
+            </span>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {Object.entries(session.toolCounts || {})
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, n]) => (
+                  <span key={name} className="ui-chip rounded-md bg-surface-hover px-1.5 py-0.5 text-xs text-fg-muted">
+                    {name} ×{n}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {(session.errorCount > 0 || session.hasThinking || session.skill || session.stopReason) && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-fg-subtle">
+            {session.errorCount > 0 && (
+              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <AlertTriangle size={12} />
+                {session.errorCount} tool error{session.errorCount > 1 ? 's' : ''}
+              </span>
+            )}
+            {session.hasThinking && (
+              <span className="flex items-center gap-1">
+                <Brain size={12} />
+                Includes thinking
+              </span>
+            )}
+            {session.skill && (
+              <span className="flex items-center gap-1">
+                <Sparkles size={12} />
+                {session.skill}
+              </span>
+            )}
+            {session.stopReason && <span>Stop: {session.stopReason}</span>}
+          </div>
+        )}
+
         {session.cwd && (
           <Field icon={Folder} label="Working dir">
             <span className="font-mono text-xs">{session.cwd}</span>

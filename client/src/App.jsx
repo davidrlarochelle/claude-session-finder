@@ -27,6 +27,7 @@ export default function App() {
     setHideObserver,
     observerCount,
     refresh,
+    filters,
   } = useSessions();
 
   const [theme, toggleTheme] = useTheme();
@@ -53,6 +54,7 @@ export default function App() {
           onToggleTheme={toggleTheme}
           style={style}
           onChangeStyle={chooseStyle}
+          filters={filters}
         />
 
         {error && (

@@ -1,8 +1,12 @@
-import { GitBranch, Clock } from 'lucide-react';
+import { GitBranch, Clock, Timer, Coins, Wrench, AlertTriangle } from 'lucide-react';
 import CopyButton from './CopyButton.jsx';
-import { relativeTime, formatSize, shortId, resumeCommand } from '../utils.js';
+import { relativeTime, formatSize, shortId, resumeCommand, formatTokens, formatDuration } from '../utils.js';
 
 export default function SessionRow({ session, selected, onSelect }) {
+  const tokens = (session.tokensIn || 0) + (session.tokensOut || 0);
+  const topToolCount = session.topTool ? session.toolCounts?.[session.topTool] : 0;
+  const hasMetrics = session.durationMs || tokens || session.toolCallCount || session.errorCount;
+
   return (
     <div
       onClick={() => onSelect(session)}
@@ -34,6 +38,43 @@ export default function SessionRow({ session, selected, onSelect }) {
           <CopyButton text={resumeCommand(session)} label="Copy resume" copiedLabel="Copied" />
         </span>
       </div>
+      {hasMetrics && (
+        <div data-testid="session-metrics" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
+          {session.durationMs > 0 && (
+            <span data-testid="badge-duration" className="flex items-center gap-1" title="Session duration">
+              <Timer size={12} />
+              {formatDuration(session.durationMs)}
+            </span>
+          )}
+          {tokens > 0 && (
+            <span
+              data-testid="badge-tokens"
+              className="flex items-center gap-1"
+              title={`${session.tokensIn || 0} input · ${session.tokensOut || 0} output tokens`}
+            >
+              <Coins size={12} />
+              {formatTokens(tokens)}
+            </span>
+          )}
+          {session.topTool && (
+            <span data-testid="badge-tooltop" className="flex items-center gap-1" title={`${session.toolCallCount} tool calls`}>
+              <Wrench size={12} />
+              {session.topTool}
+              {topToolCount > 1 ? ` ×${topToolCount}` : ''}
+            </span>
+          )}
+          {session.errorCount > 0 && (
+            <span
+              data-testid="badge-errors"
+              className="flex items-center gap-1 text-amber-600 dark:text-amber-400"
+              title={`${session.errorCount} tool error(s)`}
+            >
+              <AlertTriangle size={12} />
+              {session.errorCount}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

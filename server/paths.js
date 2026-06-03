@@ -16,6 +16,9 @@ export const PROJECTS_DIR =
 export const CACHE_DIR = process.env.CACHE_DIR || path.join(process.cwd(), '.cache');
 export const CACHE_FILE = path.join(CACHE_DIR, 'session-index.json');
 
+/** SQLite store: enriched session metadata + an FTS5 content index, in one file. */
+export const DB_FILE = path.join(CACHE_DIR, 'sessions.db');
+
 /** Server port (see plan). Overridable via PORT. */
 export const PORT = Number(process.env.PORT) || 37702;
 

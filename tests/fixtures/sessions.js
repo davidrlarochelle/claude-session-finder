@@ -65,7 +65,7 @@ export const SESSIONS = [
         ],
       },
       { kind: 'assistant', blocks: [{ type: 'tool_use', name: 'Edit', input: { file_path: 'src/Settings.jsx' } }] },
-      { kind: 'tool_result', text: 'File edited successfully.' },
+      { kind: 'tool_result', text: 'Error: EACCES writing src/Settings.jsx', error: true },
       { kind: 'malformed' },
       { kind: 'user', text: 'Looks great, can you also respect the OS preference on first load?' },
       { kind: 'assistant', blocks: [{ type: 'text', text: 'Done — it now falls back to prefers-color-scheme when nothing is stored.' }] },
@@ -87,6 +87,7 @@ export const SESSIONS = [
       { kind: 'user', text: 'The dashboard takes 8 seconds to load. Can you profile the main query?' },
       {
         kind: 'assistant',
+        skill: 'performance-auditor',
         blocks: [
           { type: 'thinking', thinking: 'Likely an N+1. Check the widgets loop.' },
           { type: 'text', text: 'Let me look at the query plan for the dashboard endpoint.' },
@@ -190,6 +191,47 @@ export function expectedMessageCount(spec) {
   return spec.events.filter((e) => e.kind === 'user' || e.kind === 'assistant' || e.kind === 'tool_result').length;
 }
 
+/**
+ * Token totals the indexer will sum. Mirrors renderEvent's synthetic usage
+ * (`input = 1200 + n`, `output = 80 + n`, where n is the event's index).
+ */
+export function expectedTokens(spec) {
+  let tokensIn = 0;
+  let tokensOut = 0;
+  spec.events.forEach((e, i) => {
+    if (e.kind === 'assistant') {
+      tokensIn += 1200 + i;
+      tokensOut += 80 + i;
+    }
+  });
+  return { tokensIn, tokensOut };
+}
+
+/** Tool-use counts by name across a session's assistant blocks. */
+export function expectedToolCounts(spec) {
+  const counts = {};
+  for (const e of spec.events) {
+    if (e.kind === 'assistant' && Array.isArray(e.blocks)) {
+      for (const b of e.blocks) {
+        if (b.type === 'tool_use') counts[b.name] = (counts[b.name] || 0) + 1;
+      }
+    }
+  }
+  return counts;
+}
+
+export function expectedToolCallCount(spec) {
+  return Object.values(expectedToolCounts(spec)).reduce((a, b) => a + b, 0);
+}
+
+/** Number of tool_result lines flagged as errors. */
+export function expectedErrorCount(spec) {
+  return spec.events.filter((e) => e.kind === 'tool_result' && e.error).length;
+}
+
+/** Visible sessions that recorded at least one tool error. */
+export const ERROR_SESSIONS = VISIBLE.filter((s) => expectedErrorCount(s) > 0);
+
 /** The resume command the UI renders for a session. */
 export function resumeCommand(spec) {
   return `cd "${spec.cwd}" && claude --resume ${spec.id}`;
@@ -232,15 +274,22 @@ function renderEvent(spec, evt, n, prevUuid, tsIso) {
         ...base,
         promptId: `prompt-${uuid(spec.id, n)}`,
         type: 'user',
-        toolUseResult: { stdout: evt.text, stderr: '', interrupted: false },
+        toolUseResult: {
+          stdout: evt.error ? '' : evt.text,
+          stderr: evt.error ? evt.text : '',
+          interrupted: false,
+        },
         sourceToolAssistantUUID: uuid(spec.id, n - 1),
-        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: `toolu_${n}`, content: evt.text }] },
+        message: {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: `toolu_${n}`, content: evt.text, is_error: !!evt.error }],
+        },
       };
     case 'assistant':
       return {
         ...base,
         requestId: `req_${uuid(spec.id, n)}`,
-        attributionSkill: null,
+        attributionSkill: evt.skill ?? null,
         type: 'assistant',
         message: {
           model: spec.model,

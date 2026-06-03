@@ -29,6 +29,34 @@ export function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Compact token count, e.g. 950 → "950", 3870 → "3.9k", 1_250_000 → "1.3M". */
+export function formatTokens(n) {
+  if (!n) return '0';
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) {
+    const k = n / 1000;
+    return `${k < 10 ? k.toFixed(1) : Math.round(k)}k`;
+  }
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+/** Compact wall-clock duration for a badge, e.g. 45s, 12m, 3h, 2d. */
+export function formatDuration(ms) {
+  if (!ms || ms < 0) return '0s';
+  const sec = Math.round(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  return `${Math.floor(hr / 24)}d`;
+}
+
+/** Exact integer with thousands separators, for detail readouts. */
+export function formatCount(n) {
+  return (n || 0).toLocaleString();
+}
+
 export function shortId(id) {
   return id ? id.slice(0, 8) : '';
 }

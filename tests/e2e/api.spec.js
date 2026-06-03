@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { SESSIONS, session, expectedMessageCount } from '../fixtures/sessions.js';
+import {
+  SESSIONS,
+  session,
+  expectedMessageCount,
+  expectedTokens,
+  expectedToolCounts,
+  expectedToolCallCount,
+  expectedErrorCount,
+} from '../fixtures/sessions.js';
 
 test.describe('API', () => {
   test('GET /api/health reports the fixtures dir exists', async ({ request }) => {
@@ -31,6 +39,35 @@ test.describe('API', () => {
     });
     expect(got.sizeBytes).toBeGreaterThan(0);
     expect(got.mtimeMs).toBeGreaterThan(0);
+  });
+
+  test('GET /api/sessions exposes enriched metrics (and hides internal fields)', async ({ request }) => {
+    const res = await request.get('/api/sessions');
+    const body = await res.json();
+
+    const s = session('Add dark mode toggle to settings page');
+    const got = body.sessions.find((x) => x.id === s.id);
+    const { tokensIn, tokensOut } = expectedTokens(s);
+
+    expect(got).toMatchObject({
+      tokensIn,
+      tokensOut,
+      toolCounts: expectedToolCounts(s), // { Edit: 1 }
+      toolCallCount: expectedToolCallCount(s),
+      topTool: 'Edit',
+      errorCount: expectedErrorCount(s), // the tool_result is flagged is_error
+      hasThinking: true,
+    });
+    expect(got.durationMs).toBeGreaterThan(0);
+    expect(got.stopReason).toBe('end_turn');
+
+    // The .jsonl path and the bulky FTS content blob must not leak to the client.
+    expect(got).not.toHaveProperty('path');
+    expect(got).not.toHaveProperty('contentText');
+
+    // attributionSkill is surfaced where present.
+    const perf = body.sessions.find((x) => x.id === session('Investigate slow dashboard query').id);
+    expect(perf.skill).toBe('performance-auditor');
   });
 
   test('GET /api/sessions/:id/preview returns text turns (no tool noise)', async ({ request }) => {

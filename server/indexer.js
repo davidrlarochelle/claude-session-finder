@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { PROJECTS_DIR, decodeProjectDir } from './paths.js';
-import { loadCache, saveCache } from './cache.js';
+import { loadIndex, upsertSessions, pruneMissing, allSessions } from './db.js';
 
 // Bound work on pathological files. Most sessions are a few hundred lines.
 const MAX_LINES = 4000;
 const PREVIEW_CHARS = 300;
+// Cap the searchable text we keep per session so the FTS index stays bounded.
+const CONTENT_CAP = 200_000;
 
 /** Strip system/command wrappers and collapse whitespace for a human preview. */
 function cleanText(s) {
@@ -39,9 +41,21 @@ function isToolResult(content) {
   );
 }
 
+/** True when a tool result reports a failure (errored, interrupted, or wrote stderr). */
+function isToolError(obj) {
+  const r = obj.toolUseResult;
+  if (r && (r.interrupted === true || (typeof r.stderr === 'string' && r.stderr.trim() !== ''))) {
+    return true;
+  }
+  const content = obj.message?.content;
+  return Array.isArray(content) && content.some((b) => b && b.type === 'tool_result' && b.is_error === true);
+}
+
 /**
- * Stream-parse one .jsonl session file into lightweight metadata.
- * Reads line by line and stops at MAX_LINES.
+ * Stream-parse one .jsonl session file into enriched metadata.
+ * Reads line by line and stops at MAX_LINES. In the same pass it accumulates
+ * token totals, tool-usage counts, error/thinking/skill signals, and a capped
+ * searchable text blob for the FTS index.
  */
 export async function parseSessionFile(filePath, stat) {
   const id = path.basename(filePath, '.jsonl');
@@ -60,6 +74,25 @@ export async function parseSessionFile(filePath, stat) {
     sizeBytes: stat.size,
     firstTs: null,
     lastTs: null,
+    durationMs: null,
+    tokensIn: 0,
+    tokensOut: 0,
+    toolCounts: {},
+    toolCallCount: 0,
+    topTool: null,
+    errorCount: 0,
+    hasThinking: false,
+    skill: null,
+    stopReason: null,
+  };
+
+  // Searchable text, accumulated then cleaned/capped once at the end.
+  const contentParts = [];
+  let contentLen = 0;
+  const pushContent = (s) => {
+    if (!s || contentLen >= CONTENT_CAP) return;
+    contentParts.push(s);
+    contentLen += s.length;
   };
 
   const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
@@ -90,6 +123,7 @@ export async function parseSessionFile(filePath, stat) {
       if (obj.cwd && !meta.cwd) meta.cwd = obj.cwd;
       if (obj.gitBranch && !meta.gitBranch) meta.gitBranch = obj.gitBranch;
       if (obj.version && !meta.version) meta.version = obj.version;
+      if (obj.attributionSkill) meta.skill = obj.attributionSkill; // last non-null wins
       if (obj.timestamp) {
         if (!meta.firstTs) meta.firstTs = obj.timestamp;
         meta.lastTs = obj.timestamp;
@@ -98,13 +132,43 @@ export async function parseSessionFile(filePath, stat) {
       if (t === 'user') {
         meta.messageCount++;
         const content = obj.message?.content;
-        if (!meta.preview && !isToolResult(content)) {
-          const cleaned = cleanText(extractText(content));
-          if (cleaned) meta.preview = cleaned.slice(0, PREVIEW_CHARS);
+        if (isToolResult(content)) {
+          if (isToolError(obj)) meta.errorCount++;
+        } else {
+          const text = extractText(content);
+          if (!meta.preview) {
+            const cleaned = cleanText(text);
+            if (cleaned) meta.preview = cleaned.slice(0, PREVIEW_CHARS);
+          }
+          pushContent(text);
         }
       } else if (t === 'assistant') {
         meta.messageCount++;
-        if (!meta.model && obj.message?.model) meta.model = obj.message.model;
+        const msg = obj.message;
+        if (msg) {
+          if (!meta.model && msg.model) meta.model = msg.model;
+          if (msg.usage) {
+            meta.tokensIn += msg.usage.input_tokens || 0;
+            meta.tokensOut += msg.usage.output_tokens || 0;
+          }
+          if (msg.stop_reason) meta.stopReason = msg.stop_reason;
+          const content = msg.content;
+          if (Array.isArray(content)) {
+            for (const b of content) {
+              if (!b) continue;
+              if (b.type === 'tool_use') {
+                meta.toolCounts[b.name] = (meta.toolCounts[b.name] || 0) + 1;
+                meta.toolCallCount++;
+              } else if (b.type === 'thinking') {
+                meta.hasThinking = true;
+              } else if (b.type === 'text' && typeof b.text === 'string') {
+                pushContent(b.text);
+              }
+            }
+          } else if (typeof content === 'string') {
+            pushContent(content);
+          }
+        }
       }
     }
   } finally {
@@ -116,6 +180,23 @@ export async function parseSessionFile(filePath, stat) {
     meta.title = meta.preview ? meta.preview.slice(0, 80) : '(untitled session)';
   }
   meta.project = meta.cwd ? path.basename(meta.cwd) : decodeProjectDir(meta.projectDir).split('/').pop();
+
+  // Derived fields.
+  let topTool = null;
+  let topN = 0;
+  for (const [name, n] of Object.entries(meta.toolCounts)) {
+    if (n > topN) {
+      topN = n;
+      topTool = name;
+    }
+  }
+  meta.topTool = topTool;
+  if (meta.firstTs && meta.lastTs) {
+    const d = Date.parse(meta.lastTs) - Date.parse(meta.firstTs);
+    meta.durationMs = Number.isFinite(d) && d >= 0 ? d : null;
+  }
+  meta.contentText = cleanText(contentParts.join('\n')).slice(0, CONTENT_CAP);
+
   return meta;
 }
 
@@ -176,37 +257,36 @@ function listSessionFiles() {
 }
 
 /**
- * Build (or incrementally refresh) the full session index.
- * Reuses cached metadata for files whose mtime+size are unchanged.
+ * Build (or incrementally refresh) the full session index, backed by SQLite.
+ * Files whose mtime+size are unchanged are reused without re-parsing; changed
+ * files are re-parsed and upserted; rows for deleted files are pruned. The
+ * returned list is read back from the DB so it always reflects current state.
  */
 export async function buildIndex({ force = false } = {}) {
   const started = Date.now();
-  const cache = force ? {} : loadCache();
-  const nextCache = {};
-  const sessions = [];
+  const existing = force ? new Map() : loadIndex();
+  const seen = new Set();
+  const toUpsert = [];
   let parsed = 0;
   let reused = 0;
   let errors = 0;
 
-  const files = listSessionFiles();
-  for (const filePath of files) {
+  for (const filePath of listSessionFiles()) {
     let stat;
     try {
       stat = fs.statSync(filePath);
     } catch {
       continue;
     }
-    const cached = cache[filePath];
+    seen.add(filePath);
+    const cached = existing.get(filePath);
     if (cached && cached.mtimeMs === stat.mtimeMs && cached.sizeBytes === stat.size) {
-      nextCache[filePath] = cached;
-      sessions.push(cached);
       reused++;
       continue;
     }
     try {
       const meta = await parseSessionFile(filePath, stat);
-      nextCache[filePath] = meta;
-      sessions.push(meta);
+      toUpsert.push({ ...meta, path: filePath });
       parsed++;
     } catch (err) {
       errors++;
@@ -214,7 +294,10 @@ export async function buildIndex({ force = false } = {}) {
     }
   }
 
-  saveCache(nextCache);
+  upsertSessions(toUpsert);
+  pruneMissing(seen);
+  const sessions = allSessions();
+
   const ms = Date.now() - started;
   console.log(
     `[indexer] ${sessions.length} sessions (parsed ${parsed}, reused ${reused}, errors ${errors}) in ${ms}ms`
